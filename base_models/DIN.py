@@ -272,30 +272,30 @@ if __name__ == "__main__":
 
     history.fit(X_train, y_train, batch_size=64, epochs=5, validation_split=0.2, )
 
-    # 在训练集上计算AUC值
-    train_pred = history.predict(X_train)
-    train_auc = roc_auc_score(y_train, train_pred)
-    print(f"Train AUC: {train_auc}")
-
-    test_data = pd.read_csv("./data/movie_test.txt", sep="\t", header=None)
-    test_data.columns = ["user_id", "gender", "age", "hist_movie_id", "hist_len", "movie_id", "movie_type_id",
-                         "label"]
-
-    # samples_data = shuffle(samples_data)
-
-    X = test_data[["user_id", "gender", "age", "hist_movie_id", "hist_len", "movie_id", "movie_type_id"]]
-    y = test_data["label"]
-
-    # 将验证集数据准备好，然后在验证集上计算AUC值
-    X_val = {"user_id": np.array(X["user_id"]), \
-             "gender": np.array(X["gender"]), \
-             "age": np.array(X["age"]), \
-             "hist_movie_id": np.array([[int(i) for i in l.split(',')] for l in X["hist_movie_id"]]), \
-             "hist_len": np.array(X["hist_len"]), \
-             "movie_id": np.array(X["movie_id"]), \
-             "movie_type_id": np.array(X["movie_type_id"])}  # 准备验证集数据，与训练集的数据格式一致
-    y_val = np.array(y)  # 准备验证集标签
-
-    val_pred = history.predict(X_val)
-    val_auc = roc_auc_score(y_val, val_pred)
-    print(f"Validation AUC: {val_auc}")
+    # # 在训练集上计算AUC值
+    # train_pred = history.predict(X_train)
+    # train_auc = roc_auc_score(y_train, train_pred)
+    # print(f"Train AUC: {train_auc}")
+    #
+    # test_data = pd.read_csv("./data/movie_test.txt", sep="\t", header=None)
+    # test_data.columns = ["user_id", "gender", "age", "hist_movie_id", "hist_len", "movie_id", "movie_type_id",
+    #                      "label"]
+    #
+    # # samples_data = shuffle(samples_data)
+    #
+    # X = test_data[["user_id", "gender", "age", "hist_movie_id", "hist_len", "movie_id", "movie_type_id"]]
+    # y = test_data["label"]
+    #
+    # # 将验证集数据准备好，然后在验证集上计算AUC值
+    # X_val = {"user_id": np.array(X["user_id"]), \
+    #          "gender": np.array(X["gender"]), \
+    #          "age": np.array(X["age"]), \
+    #          "hist_movie_id": np.array([[int(i) for i in l.split(',')] for l in X["hist_movie_id"]]), \
+    #          "hist_len": np.array(X["hist_len"]), \
+    #          "movie_id": np.array(X["movie_id"]), \
+    #          "movie_type_id": np.array(X["movie_type_id"])}  # 准备验证集数据，与训练集的数据格式一致
+    # y_val = np.array(y)  # 准备验证集标签
+    #
+    # val_pred = history.predict(X_val)
+    # val_auc = roc_auc_score(y_val, val_pred)
+    # print(f"Validation AUC: {val_auc}")

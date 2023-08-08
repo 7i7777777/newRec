@@ -277,17 +277,16 @@ if __name__ == "__main__":
 
     # 创建特征列
     feature_columns = [
-        SparseFeat('user_id', user_id_max, embedding_dim=8),
+        SparseFeat('user_id', user_id_max + 1, embedding_dim=8),
         VarLenSparseFeat(
-            SparseFeat('hist_news_id', news_id_max, embedding_dim=8),
-            vocabulary_size=news_id_max + 1,  # 这是词汇表大小
+            'hist_news_id', news_id_max + 1,
             embedding_dim=8,  # 这是嵌入维度
             maxlen=50
         )
     ]
 
     # 创建行为特征列表和行为序列特征列表
-    behavior_feature_list = ['user_id']
+    behavior_feature_list = ['news_id']
     behavior_seq_feature_list = ['hist_news_id']
 
     # 创建DIN模型

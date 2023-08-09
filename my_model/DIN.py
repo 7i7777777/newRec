@@ -240,58 +240,41 @@ if __name__ == "__main__":
     behaviors_data = pd.read_csv("./data/MINDsmall_train/behaviors.tsv", sep="\t",
                                  names=["impression_id", "user_id", "time", "history", "impressions"])
     news_data = pd.read_csv("./data/MINDsmall_train/news.tsv", sep="\t",
-                            names=["news_id", "category", "subCategory", "title", "abstract", "url", "title_entities",
+                            names=["news_id", "category", "sub_category", "title", "abstract", "url", "title_entities",
                                    "abstract_entities"])
 
-    hist_news_id_list = []
-    for hist in behaviors_data["history"]:
-        if isinstance(hist, str) and hist.strip():  # 检查hist是否是非空字符串
-            hist_ids = [int(news_id[1:]) for news_id in hist.split()]
-            hist_news_id_list.append(hist_ids)
-        else:
-            hist_news_id_list.append([])  # 对于空值，将一个空列表添加到结果列表中
+    # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
+    sparse_feature_columns = [SparseFeat('news_id', vocabulary_size=len(news_data), embedding_dim=8),
+                              SparseFeat('category', vocabulary_size=len(news_data['category'].unique()) + 1,
+                                         embedding_dim=8),
+                              SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1,
+                                         embedding_dim=8)]
 
-    # 处理用户行为数据
-    X_train = {
-        "user_id": behaviors_data["user_id"],
-        "hist_news_id": hist_news_id_list
-    }
+    # 假设"history"和"impressions"都作为行为序列特征
+    varlen_sparse_feature_columns = [
+        VarLenSparseFeat('history', vocabulary_size=len(news_data), embedding_dim=8, maxlen=50),
+        VarLenSparseFeat('impressions', vocabulary_size=len(news_data), embedding_dim=8, maxlen=50)]
 
-    # 处理标签数据
-    y_train = behaviors_data["impressions"].apply(lambda x: [int(item.split('-')[1]) for item in x.split()])
+    # 其他的稠密特征和行为特征列表保持不变
+    dense_feature_columns = [DenseFeat('hist_len', 1)]
 
-    # 创建特征列
-    impression_id_max = behaviors_data["impression_id"].nunique()
-    user_id_max = behaviors_data["user_id"].nunique()
-    time_max = behaviors_data["time"].nunique()
-    history_max = behaviors_data["history"].nunique()
-    impressions_max = behaviors_data["impressions"].nunique()
-    news_id_max = news_data["news_id"].nunique()
-    category_max = news_data["category"].nunique()
-    subCategory_max = news_data["subCategory"].nunique()
-    title_max = news_data["title"].nunique()
-    abstract_max = news_data["abstract"].nunique()
-    url_max = news_data["url"].nunique()
-    title_entities_max = news_data["title_entities"].nunique()
-    abstract_entities_max = news_data["abstract_entities"].nunique()
-
-    # 创建特征列
-    feature_columns = [
-        SparseFeat('user_id', user_id_max + 1, embedding_dim=8),
-        VarLenSparseFeat(
-            'hist_news_id', news_id_max + 1,
-            embedding_dim=8,  # 这是嵌入维度
-            maxlen=50
-        )
-    ]
-
-    # 创建行为特征列表和行为序列特征列表
     behavior_feature_list = ['news_id']
-    behavior_seq_feature_list = ['hist_news_id']
+    behavior_seq_feature_list = ['history', 'impressions']
 
-    # 创建DIN模型
-    history = DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list)
-    history.compile('adam', 'binary_crossentropy')
+    X_train = {"user_id": np.array(behaviors_data["user_id"]),
+               "time": np.array(behaviors_data["time"]),
+               "history": np.array([list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]]),
+               "hist_len": np.array(behaviors_data["history"].apply(lambda x: len(x.split()) if isinstance(x, str) else 0)),
+               "imp_news_id": np.array([list(map(str, n.split('-')[0])) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()]),
+               "category": np.array(news_data["category"].astype('str')),
+               "sub_category": np.array(news_data["sub_category"].astype('str'))}
 
-    # 训练模型
-    history.fit(X_train, y_train, batch_size=64, epochs=5, validation_split=0.2)
+    y_train = np.array([int(n.split('-')[1]) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()])
+
+    feature_columns = sparse_feature_columns + varlen_sparse_feature_columns + dense_feature_columns
+
+    model = DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list)
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    model.fit(X_train, y_train, batch_size=64, epochs=5, validation_split=0.2)

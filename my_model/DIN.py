@@ -243,35 +243,40 @@ if __name__ == "__main__":
                             names=["news_id", "category", "sub_category", "title", "abstract", "url", "title_entities",
                                    "abstract_entities"])
 
-    # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
-    sparse_feature_columns = [SparseFeat('news_id', vocabulary_size=len(news_data), embedding_dim=8),
-                              SparseFeat('category', vocabulary_size=len(news_data['category'].unique()) + 1,
-                                         embedding_dim=8),
-                              SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1,
-                                         embedding_dim=8)]
-
-    # 假设"history"和"impressions"都作为行为序列特征
-    varlen_sparse_feature_columns = [
-        VarLenSparseFeat('history', vocabulary_size=len(news_data), embedding_dim=8, maxlen=50),
-        VarLenSparseFeat('impressions', vocabulary_size=len(news_data), embedding_dim=8, maxlen=50)]
-
-    # 其他的稠密特征和行为特征列表保持不变
-    dense_feature_columns = [DenseFeat('hist_len', 1)]
-
-    behavior_feature_list = ['news_id']
-    behavior_seq_feature_list = ['history', 'impressions']
-
     X_train = {"user_id": np.array(behaviors_data["user_id"]),
                "time": np.array(behaviors_data["time"]),
-               "history": np.array([list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]]),
-               "hist_len": np.array(behaviors_data["history"].apply(lambda x: len(x.split()) if isinstance(x, str) else 0)),
-               "imp_news_id": np.array([list(map(str, n.split('-')[0])) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()]),
+               "history": np.array(
+                   [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]]),
+               # "hist_len": np.array(
+               #     behaviors_data["history"].apply(lambda x: len(x.split()) if isinstance(x, str) else 0)),
+               "imp_news_id": np.array(
+                   [list(map(str, n.split('-')[0])) for s in behaviors_data["impressions"] if isinstance(s, str) for n
+                    in s.split()]),
+               "news_id": np.array(news_data["news_id"].astype('str')),
                "category": np.array(news_data["category"].astype('str')),
-               "sub_category": np.array(news_data["sub_category"].astype('str'))}
+               "sub_category": np.array(news_data["sub_category"].astype('str')),
+               "title": np.array(news_data["title"].astype('str')),
+               "abstract": np.array(news_data["abstract"].astype('str'))},
 
-    y_train = np.array([int(n.split('-')[1]) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()])
+    y_train = np.array(
+        [int(n.split('-')[1]) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()])
 
-    feature_columns = sparse_feature_columns + varlen_sparse_feature_columns + dense_feature_columns
+    # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
+    feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()) + 1, embedding_dim=8),
+                       SparseFeat('time', vocabulary_size=len(behaviors_data['time'].unique()) + 1, embedding_dim=8),
+                       VarLenSparseFeat('history', vocabulary_size=len(behaviors_data['history'].unique()) + 1, embedding_dim=8, maxlen=50),
+                       VarLenSparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()) + 1, embedding_dim=8, maxlen=50),
+                       SparseFeat('news_id', vocabulary_size=len(news_data['news_id'].unique()) + 1, embedding_dim=8),
+                       SparseFeat('category', vocabulary_size=len(news_data['category'].unique()) + 1, embedding_dim=8),
+                       SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1, embedding_dim=8),
+                       SparseFeat('title', vocabulary_size=len(news_data['title'].unique()) + 1, embedding_dim=8),
+                       SparseFeat('abstract', vocabulary_size=len(news_data['abstract'].unique()) + 1, embedding_dim=8),
+                       # DenseFeat('hist_len', 1)
+                       ]
+
+
+    behavior_feature_list = ['history']
+    behavior_seq_feature_list = ['imp_news_id']
 
     model = DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list)
 

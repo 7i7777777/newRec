@@ -89,7 +89,7 @@ class LocalActivationUnit(Layer):
         # 获取序列长度
         keys_len = keys.get_shape()[1]
 
-        queries = tf.tile(query, multiples=[1, keys_len, 1])  # (None, len, emb_dim)
+        queries = tf.tile(query, multiples=[1, 1, 1])  # (None, len, emb_dim)
 
         # 将特征进行拼接
         att_input = tf.concat([queries, keys, queries - keys, queries * keys], axis=-1)  # B x len x 4*emb_dim
@@ -245,13 +245,9 @@ if __name__ == "__main__":
 
     X_train = {"user_id": np.array(behaviors_data["user_id"]),
                "time": np.array(behaviors_data["time"]),
-               "history": np.array(
-                   [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]]),
-               # "hist_len": np.array(
-               #     behaviors_data["history"].apply(lambda x: len(x.split()) if isinstance(x, str) else 0)),
-               "imp_news_id": np.array(
-                   [list(map(str, n.split('-')[0])) for s in behaviors_data["impressions"] if isinstance(s, str) for n
-                    in s.split()]),
+               "history": [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]],
+               "imp_news_id": [list(map(str, n.split('-')[0])) for s in behaviors_data["impressions"] if
+                               isinstance(s, str) for n in s.split()],
                "news_id": np.array(news_data["news_id"].astype('str')),
                "category": np.array(news_data["category"].astype('str')),
                "sub_category": np.array(news_data["sub_category"].astype('str')),
@@ -262,21 +258,23 @@ if __name__ == "__main__":
         [int(n.split('-')[1]) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()])
 
     # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
-    feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()) + 1, embedding_dim=8),
-                       SparseFeat('time', vocabulary_size=len(behaviors_data['time'].unique()) + 1, embedding_dim=8),
-                       VarLenSparseFeat('history', vocabulary_size=len(behaviors_data['history'].unique()) + 1, embedding_dim=8, maxlen=50),
-                       VarLenSparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()) + 1, embedding_dim=8, maxlen=50),
-                       SparseFeat('news_id', vocabulary_size=len(news_data['news_id'].unique()) + 1, embedding_dim=8),
+    feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()), embedding_dim=8),
+                       # SparseFeat('time', vocabulary_size=len(behaviors_data['time'].unique()) + 1, embedding_dim=8),
+                       VarLenSparseFeat('history', vocabulary_size=len(behaviors_data['history'].unique()) + 1,
+                                        embedding_dim=8, maxlen=50),
+                       VarLenSparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()) + 1,
+                                        embedding_dim=8, maxlen=50),
+                       SparseFeat('news_id', vocabulary_size=len(news_data['news_id'].unique()), embedding_dim=8),
                        SparseFeat('category', vocabulary_size=len(news_data['category'].unique()) + 1, embedding_dim=8),
-                       SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1, embedding_dim=8),
+                       SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1,
+                                  embedding_dim=8),
                        SparseFeat('title', vocabulary_size=len(news_data['title'].unique()) + 1, embedding_dim=8),
                        SparseFeat('abstract', vocabulary_size=len(news_data['abstract'].unique()) + 1, embedding_dim=8),
-                       # DenseFeat('hist_len', 1)
+                       DenseFeat('time', 1)
                        ]
 
-
-    behavior_feature_list = ['history']
-    behavior_seq_feature_list = ['imp_news_id']
+    behavior_feature_list = ['imp_news_id']
+    behavior_seq_feature_list = ['history']
 
     model = DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list)
 

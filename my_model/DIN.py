@@ -1,5 +1,7 @@
 import warnings
 
+from keras.utils import pad_sequences
+
 warnings.filterwarnings("ignore")
 import itertools
 import pandas as pd
@@ -243,23 +245,42 @@ if __name__ == "__main__":
                             names=["news_id", "category", "sub_category", "title", "abstract", "url", "title_entities",
                                    "abstract_entities"])
 
+    padded_history_sequences = pad_sequences(
+        [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]], maxlen=50,
+        padding='post', truncating='post', dtype=object, value='<PAD>')
+    padded_impression_sequences = pad_sequences(
+        [[n.split('-')[0] for n in s.split()] if isinstance(s, str) else [] for s in
+         behaviors_data["impressions"]], maxlen=1, padding='post', truncating='post',
+        dtype=object, value='<PAD>')
+
+    user_news_features = []  # 存储每个用户的新闻特征
+    for history in behaviors_data['history']:
+        news_ids = [n for n in history.split() if n.startswith('N')]
+        user_news_feature = []  # 每个用户的新闻特征
+        for news_id in news_ids:
+            news_row = news_data[news_data['news_id'] == news_id]
+            # 提取需要的新闻特征
+            # news_feature = [news_row['category'].values[0], news_row['sub_category'].values[0],
+            #                 news_row['title'].values[0], news_row['abstract'].values[0]]
+            news_feature = [news_row['category'].values[0], news_row['sub_category'].values[0]]
+            user_news_feature.append(news_feature)
+        user_news_features.append(user_news_feature)
+
     X_train = {
         "user_id": np.array(behaviors_data["user_id"]),
-        "time": np.array(behaviors_data["time"]),
-        "history": [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]],
-        "imp_news_id": [[n.split('-')[0] for n in s.split()] if isinstance(s, str) else [] for s in
-                        behaviors_data["impressions"]],
-        "news_id": np.array(news_data["news_id"].astype('str')),
-        "category": np.array(news_data["category"].astype('str')),
-        "sub_category": np.array(news_data["sub_category"].astype('str')),
-        "title": np.array(news_data["title"].astype('str')),
-        "abstract": np.array(news_data["abstract"].astype('str'))
+        # "time": np.array(behaviors_data["time"]),
+        "history": padded_history_sequences,
+        "imp_news_id": padded_impression_sequences,
+        "user_news_features": user_news_features
     }
 
     y_train = np.array(
-        [int(n.split('-')[1]) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()])
+        [int(n.split('-')[1]) if isinstance(s, str) else 0 for s in behaviors_data["impressions"] for n in
+         s.split()[:1]])
 
-    # X_train = {feature: tf.convert_to_tensor(values) for feature, values in X_train.items()}
+    # print("Number of samples in X_train:", len(X_train))
+    # print("Sample content in X_train:", X_train)
+    # print("y_train", y_train)
 
     # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
     feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()), embedding_dim=8),
@@ -283,5 +304,8 @@ if __name__ == "__main__":
     model = DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list)
 
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+    # 将数据划分为训练集和验证集
+    # X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
     model.fit(X_train, y_train, batch_size=64, epochs=5, validation_split=0.2)

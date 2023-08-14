@@ -262,7 +262,7 @@ if __name__ == "__main__":
             # 提取需要的新闻特征
             # news_feature = [news_row['category'].values[0], news_row['sub_category'].values[0],
             #                 news_row['title'].values[0], news_row['abstract'].values[0]]
-            news_feature = [news_row['category'].values[0], news_row['sub_category'].values[0]]
+            news_feature = [news_row['category'].values[0], news_row['title'].values[0]]
             user_news_feature.append(news_feature)
         user_news_features.append(user_news_feature)
 
@@ -271,7 +271,7 @@ if __name__ == "__main__":
         # "time": np.array(behaviors_data["time"]),
         "history": padded_history_sequences,
         "imp_news_id": padded_impression_sequences,
-        "user_news_features": user_news_features
+        "user_news_features": np.array(user_news_features)
     }
 
     y_train = np.array(

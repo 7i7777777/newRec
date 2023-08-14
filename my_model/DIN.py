@@ -237,25 +237,29 @@ def DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list):
 
 if __name__ == "__main__":
     # 读取数据
-    behaviors_data = pd.read_csv("./data/MINDsmall_train/behaviors.tsv", sep="\t",
+    behaviors_data = pd.read_csv("./data/MINDsmall_train/beTest.tsv", sep="\t",
                                  names=["impression_id", "user_id", "time", "history", "impressions"])
     news_data = pd.read_csv("./data/MINDsmall_train/news.tsv", sep="\t",
                             names=["news_id", "category", "sub_category", "title", "abstract", "url", "title_entities",
                                    "abstract_entities"])
 
-    X_train = {"user_id": np.array(behaviors_data["user_id"]),
-               "time": np.array(behaviors_data["time"]),
-               "history": [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]],
-               "imp_news_id": [list(map(str, n.split('-')[0])) for s in behaviors_data["impressions"] if
-                               isinstance(s, str) for n in s.split()],
-               "news_id": np.array(news_data["news_id"].astype('str')),
-               "category": np.array(news_data["category"].astype('str')),
-               "sub_category": np.array(news_data["sub_category"].astype('str')),
-               "title": np.array(news_data["title"].astype('str')),
-               "abstract": np.array(news_data["abstract"].astype('str'))},
+    X_train = {
+        "user_id": np.array(behaviors_data["user_id"]),
+        "time": np.array(behaviors_data["time"]),
+        "history": [list(map(str, l.split())) if isinstance(l, str) else [] for l in behaviors_data["history"]],
+        "imp_news_id": [[n.split('-')[0] for n in s.split()] if isinstance(s, str) else [] for s in
+                        behaviors_data["impressions"]],
+        "news_id": np.array(news_data["news_id"].astype('str')),
+        "category": np.array(news_data["category"].astype('str')),
+        "sub_category": np.array(news_data["sub_category"].astype('str')),
+        "title": np.array(news_data["title"].astype('str')),
+        "abstract": np.array(news_data["abstract"].astype('str'))
+    }
 
     y_train = np.array(
         [int(n.split('-')[1]) for s in behaviors_data["impressions"] if isinstance(s, str) for n in s.split()])
+
+    # X_train = {feature: tf.convert_to_tensor(values) for feature, values in X_train.items()}
 
     # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
     feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()), embedding_dim=8),

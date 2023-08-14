@@ -254,21 +254,21 @@ if __name__ == "__main__":
         dtype=object, value='<PAD>')
 
     user_news_features = []  # 存储每个用户的新闻特征
-    for history in behaviors_data['history']:
-        news_ids = [n for n in history.split() if n.startswith('N')]
+    for history in behaviors_data['impressions']:
+        news_ids = [history.split()[0].split('-')[0]]
         user_news_feature = []  # 每个用户的新闻特征
         for news_id in news_ids:
             news_row = news_data[news_data['news_id'] == news_id]
             # 提取需要的新闻特征
             # news_feature = [news_row['category'].values[0], news_row['sub_category'].values[0],
             #                 news_row['title'].values[0], news_row['abstract'].values[0]]
-            news_feature = [news_row['category'].values[0], news_row['title'].values[0]]
+            news_feature = [news_row['category'].values[0]]
             user_news_feature.append(news_feature)
         user_news_features.append(user_news_feature)
 
     X_train = {
         "user_id": np.array(behaviors_data["user_id"]),
-        # "time": np.array(behaviors_data["time"]),
+        "time": np.array(behaviors_data["time"]),
         "history": padded_history_sequences,
         "imp_news_id": padded_impression_sequences,
         "user_news_features": np.array(user_news_features)
@@ -285,18 +285,25 @@ if __name__ == "__main__":
     # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
     feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()), embedding_dim=8),
                        # SparseFeat('time', vocabulary_size=len(behaviors_data['time'].unique()) + 1, embedding_dim=8),
-                       VarLenSparseFeat('history', vocabulary_size=len(behaviors_data['history'].unique()) + 1,
+                       VarLenSparseFeat('history', vocabulary_size=len(behaviors_data['history'].unique()),
                                         embedding_dim=8, maxlen=50),
-                       SparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()) + 1,
+                       SparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()),
                                   embedding_dim=8),
-                       SparseFeat('news_id', vocabulary_size=len(news_data['news_id'].unique()), embedding_dim=8),
-                       SparseFeat('category', vocabulary_size=len(news_data['category'].unique()) + 1, embedding_dim=8),
-                       SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1,
+                       SparseFeat('user_news_features', vocabulary_size=len(news_data['category'].unique()),
                                   embedding_dim=8),
-                       SparseFeat('title', vocabulary_size=len(news_data['title'].unique()) + 1, embedding_dim=8),
-                       SparseFeat('abstract', vocabulary_size=len(news_data['abstract'].unique()) + 1, embedding_dim=8),
                        DenseFeat('time', 1)
                        ]
+
+    # 打印特征列的定义
+    for feat in feature_columns:
+        if isinstance(feat, (SparseFeat, VarLenSparseFeat)):
+            print(f"{feat.name}: embedding_dim={feat.embedding_dim}, vocabulary_size={feat.vocabulary_size}")
+        elif isinstance(feat, DenseFeat):
+            print(f"{feat.name}: dense_feature_dim={feat.dimension}")
+
+    # 检查X_train的特征形状
+    for feature_name, feature_value in X_train.items():
+        print(f"{feature_name}: {feature_value.shape}")
 
     behavior_feature_list = ['imp_news_id']
     behavior_seq_feature_list = ['history']

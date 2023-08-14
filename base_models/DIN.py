@@ -251,7 +251,10 @@ if __name__ == "__main__":
             "movie_type_id": np.array(X["movie_type_id"])}
 
     y_train = np.array(y)
-
+    print("Number of samples in X_train:", len(X_train))
+    print("Number of samples in y_train:", len(y_train))
+    print("Sample content in X_train:", X_train)
+    print("y_train", y_train)
     feature_columns = [SparseFeat('user_id', max(samples_data["user_id"])+1, embedding_dim=8), 
                         SparseFeat('gender', max(samples_data["gender"])+1, embedding_dim=8), 
                         SparseFeat('age', max(samples_data["age"])+1, embedding_dim=8), 

@@ -239,7 +239,7 @@ def DIN(feature_columns, behavior_feature_list, behavior_seq_feature_list):
 
 if __name__ == "__main__":
     # 读取数据
-    behaviors_data = pd.read_csv("./data/MINDsmall_train/beTest.tsv", sep="\t",
+    behaviors_data = pd.read_csv("./data/MINDsmall_train/behaviors.tsv", sep="\t",
                                  names=["impression_id", "user_id", "time", "history", "impressions"])
     news_data = pd.read_csv("./data/MINDsmall_train/news.tsv", sep="\t",
                             names=["news_id", "category", "sub_category", "title", "abstract", "url", "title_entities",

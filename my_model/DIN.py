@@ -91,7 +91,7 @@ class LocalActivationUnit(Layer):
         # 获取序列长度
         keys_len = keys.get_shape()[1]
 
-        queries = tf.tile(query, multiples=[1, 1, 1])  # (None, len, emb_dim)
+        queries = tf.tile(query, multiples=[1, keys_len, 1])  # (None, len, emb_dim)
 
         # 将特征进行拼接
         att_input = tf.concat([queries, keys, queries - keys, queries * keys], axis=-1)  # B x len x 4*emb_dim
@@ -278,17 +278,17 @@ if __name__ == "__main__":
         [int(n.split('-')[1]) if isinstance(s, str) else 0 for s in behaviors_data["impressions"] for n in
          s.split()[:1]])
 
-    # print("Number of samples in X_train:", len(X_train))
-    # print("Sample content in X_train:", X_train)
-    # print("y_train", y_train)
+    print("Number of samples in X_train:", len(X_train))
+    print("Sample content in X_train:", X_train)
+    print("y_train", y_train)
 
     # 假设将"news_id"作为稀疏特征中的id，"category"和"sub_category"作为类别特征
     feature_columns = [SparseFeat('user_id', vocabulary_size=len(behaviors_data['user_id'].unique()), embedding_dim=8),
                        # SparseFeat('time', vocabulary_size=len(behaviors_data['time'].unique()) + 1, embedding_dim=8),
                        VarLenSparseFeat('history', vocabulary_size=len(behaviors_data['history'].unique()) + 1,
                                         embedding_dim=8, maxlen=50),
-                       VarLenSparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()) + 1,
-                                        embedding_dim=8, maxlen=50),
+                       SparseFeat('imp_news_id', vocabulary_size=len(behaviors_data['impressions'].unique()) + 1,
+                                  embedding_dim=8),
                        SparseFeat('news_id', vocabulary_size=len(news_data['news_id'].unique()), embedding_dim=8),
                        SparseFeat('category', vocabulary_size=len(news_data['category'].unique()) + 1, embedding_dim=8),
                        SparseFeat('sub_category', vocabulary_size=len(news_data['sub_category'].unique()) + 1,

@@ -251,10 +251,10 @@ if __name__ == "__main__":
             "movie_type_id": np.array(X["movie_type_id"])}
 
     y_train = np.array(y)
-    print("Number of samples in X_train:", len(X_train))
-    print("Number of samples in y_train:", len(y_train))
-    print("Sample content in X_train:", X_train)
-    print("y_train", y_train)
+    # print("Number of samples in X_train:", len(X_train))
+    # print("Number of samples in y_train:", len(y_train))
+    # print("Sample content in X_train:", X_train)
+    # print("y_train", y_train)
     feature_columns = [SparseFeat('user_id', max(samples_data["user_id"])+1, embedding_dim=8), 
                         SparseFeat('gender', max(samples_data["gender"])+1, embedding_dim=8), 
                         SparseFeat('age', max(samples_data["age"])+1, embedding_dim=8), 
@@ -275,7 +275,32 @@ if __name__ == "__main__":
 
     history.fit(X_train, y_train, batch_size=64, epochs=5, validation_split=0.2, )
 
-    # # 在训练集上计算AUC值
+    test_data = pd.read_csv("./data/movie_test.txt", sep="\t", header=None)
+    test_data.columns = ["user_id", "gender", "age", "hist_movie_id", "hist_len", "movie_id", "movie_type_id",
+                            "label"]
+
+    X_test = {"user_id": np.array(test_data["user_id"]), \
+            "gender": np.array(test_data["gender"]), \
+            "age": np.array(test_data["age"]), \
+            "hist_movie_id": np.array([[int(i) for i in l.split(',')] for l in test_data["hist_movie_id"]]), \
+            "hist_len": np.array(test_data["hist_len"]), \
+            "movie_id": np.array(test_data["movie_id"]), \
+            "movie_type_id": np.array(test_data["movie_type_id"])}
+
+    y_test = np.array(test_data["label"])
+    # 在训练集上计算AUC值
+    auc_scores = []
+    for epoch in range(1):  # 假设你设置了 5 个 epochs
+        y_pred = history.predict(X_test)  # 假设X_validation是验证集的特征
+        auc = roc_auc_score(y_test, y_pred)
+        auc_scores.append(auc)
+        print(f"Epoch {epoch + 1} - AUC: {auc:.4f}")
+
+
+
+
+
+
     # train_pred = history.predict(X_train)
     # train_auc = roc_auc_score(y_train, train_pred)
     # print(f"Train AUC: {train_auc}")
